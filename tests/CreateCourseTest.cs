@@ -1,66 +1,39 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using api.Controllers;
-using api.Data;
 using api.Dtos.Course;
-using Moq;
+using api.Data;
+using api.Controllers;
 
 namespace tests;
 
 public class CreateCourseTest
 {
-    private static ApplicationDBContext GetDbContext()
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDBContext>()
-            .UseInMemoryDatabase(databaseName: "TestDb_" + Guid.NewGuid())
-            .Options;
-        return new ApplicationDBContext(options);
-    }
+    private readonly ApplicationDBContext context;
+    private readonly CourseController controller;
 
-    private static CourseController GetController(ApplicationDBContext context)
+    public CreateCourseTest()
     {
-        var envMock = new Mock<IWebHostEnvironment>();
-        envMock.Setup(e => e.WebRootPath).Returns(Path.GetTempPath());
-        return new CourseController(context, envMock.Object);
-    }
-
-    private static IFormFile GetMockFormFile()
-    {
-        var fileMock = new Mock<IFormFile>();
-        var content = "Fake file content";
-        var fileName = "test.png";
-        var ms = new MemoryStream();
-        var writer = new StreamWriter(ms);
-        writer.Write(content);
-        writer.Flush();
-        ms.Position = 0;
-        fileMock.Setup(_ => _.FileName).Returns(fileName);
-        fileMock.Setup(_ => _.Length).Returns(ms.Length);
-        fileMock.Setup(_ => _.ContentType).Returns("image/png");
-        return fileMock.Object;
+        context = TestHelpers.GetDbContext();
+        controller = TestHelpers.GetController(context);
     }
 
     [Fact]
     public async Task CreateCourse_HappyPath_ReturnsCreatedCourse()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a valid CreateCourseDto
+        // This DTO will be used to create a new course
         var dto = new CreateCourseDto
         {
             Name = "Mathematics",
             Description = "Basic math course",
-            File = GetMockFormFile(),
+            File = TestHelpers.GetMockFormFile(),
             Schedule = "Monday, Wednesday, Friday",
             Professor = "Dr. Smith",
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return CreatedAtAction and the course should be created
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
         var course = Assert.IsType<CourseDto>(createdResult.Value);
         Assert.Equal(dto.Name, course.Name);
@@ -73,53 +46,47 @@ public class CreateCourseTest
     [Fact]
     public async Task CreateCourse_InvalidName_ReturnsBadRequest()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a DTO with an invalid name
         var dto = new CreateCourseDto
         {
             Name = "", // Invalid name
             Description = "Some description",
-            File = new Mock<IFormFile>().Object,
+            File = TestHelpers.GetMockFormFile(),
             Schedule = "Monday, Wednesday, Friday",
             Professor = "Dr. Smith",
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return BadRequest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
     public async Task CreateCourse_InvalidDescription_ReturnsBadRequest()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a DTO with an invalid description
         var dto = new CreateCourseDto
         {
             Name = "Physics",
             Description = "", // Invalid description
-            File = new Mock<IFormFile>().Object,
+            File = TestHelpers.GetMockFormFile(),
             Schedule = "Monday, Wednesday, Friday",
             Professor = "Dr. Smith",
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return BadRequest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
     public async Task CreateCourse_InvalidFile_ReturnsBadRequest()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a DTO with an invalid file
         var dto = new CreateCourseDto
         {
             Name = "Chemistry",
@@ -129,54 +96,50 @@ public class CreateCourseTest
             Professor = "Dr. Smith",
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return BadRequest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
     public async Task CreateCourse_InvalidSchedule_ReturnsBadRequest()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a DTO with an invalid schedule
         var dto = new CreateCourseDto
         {
             Name = "Chemistry",
             Description = "Chemistry course",
-            File = new Mock<IFormFile>().Object,
+            File = TestHelpers.GetMockFormFile(),
             Schedule = "", // Invalid schedule
             Professor = "Dr. Smith",
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return BadRequest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
     public async Task CreateCourse_InvalidProfessor_ReturnsBadRequest()
     {
-        // Arrange
-        var context = GetDbContext();
-        var controller = GetController(context);
+        // Arrange: Create a DTO with an invalid professor
         var dto = new CreateCourseDto
         {
             Name = "Biology",
             Description = "Biology course",
-            File = new Mock<IFormFile>().Object,
+            File = TestHelpers.GetMockFormFile(),
             Schedule = "Tuesday, Thursday",
             Professor = "", // Invalid professor
         };
 
-        // Act
+        // Act: Call Create with the DTO
         var result = await controller.Create(dto);
 
-        // Assert
+        // Assert: Should return BadRequest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 }
